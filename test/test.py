@@ -58,8 +58,8 @@ def checked_call_with_output(cmd, expected=None, unexpected=None, stderr=None):
       assert x not in stdout, 'call had the wrong output: ' + stdout + '\n[[[' + x + ']]]'
 
 
-def failing_call_with_output(cmd, expected):
-  proc = subprocess.Popen(cmd.split(' '), stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+def failing_call_with_output(cmd, expected, env=None):
+  proc = subprocess.Popen(cmd.split(' '), stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, env=env)
   stdout, stderr = proc.communicate()
   if WINDOWS:
     print('warning: skipping part of failing_call_with_output() due to error codes not being propagated (see #592)')
@@ -136,6 +136,20 @@ int main() {
   def setUp(self):
     run_emsdk('install latest')
     run_emsdk('activate latest')
+
+  def test_unknown_arch(self):
+    env = os.environ.copy()
+    env['EMSDK_ARCH'] = 'mips'
+    failing_call_with_output(emsdk + ' install latest',
+                             expected='unknown machine architecture: mips',
+                             env=env)
+
+  def test_wrong_bitness(self):
+    env = os.environ.copy()
+    env['EMSDK_ARCH'] = 'x86'
+    failing_call_with_output(emsdk + ' install llvm-git-main-64bit',
+                             expected='this tool is only provided for 64-bit OSe',
+                             env=env)
 
   def test_already_installed(self):
     # Test we don't re-download unnecessarily
